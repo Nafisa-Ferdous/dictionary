@@ -71,6 +71,20 @@
   .chip { border: 1px solid var(--border); background: var(--chip-bg); color: var(--text);
     border-radius: 16px; padding: 3px 12px; font: inherit; font-size: 14px; cursor: pointer; }
   .chip:hover { background: var(--chip-hover); }
+  .chip.rel { color: var(--muted); border-color: transparent; background: var(--chip-hover); opacity: .85; }
+  .chip.rel:hover { opacity: 1; color: var(--text); }
+  .forms { color: var(--muted); font-size: 14px; margin: -4px 0 8px; }
+  .forms b { color: var(--soft); }
+  .posblock + .posblock { margin-top: 10px; }
+  .sl { color: var(--muted); font-style: italic; font-size: 14px; }
+  .synblock { margin-top: 6px; }
+  .syngroups { margin: 6px 0 4px 26px; }
+  .sghead { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .syngroups .synblock { padding: 8px 0 10px; border-top: 1px solid var(--border); }
+  .sgdef { font-size: 14px; }
+  .sgdef .ex { display: inline; }
+  .related { margin: 10px 0 0 26px; font-size: 14px; color: var(--soft); }
+  .related .rlab { color: var(--muted); }
   .xref { color: var(--blue); cursor: pointer; }
   .xref:hover { text-decoration: underline; }
   .more { margin-top: 4px; background: none; border: 0; color: var(--blue); cursor: pointer;
@@ -131,7 +145,7 @@ let THES_KEY = store.get('define.thesKey');
 const API = 'https://www.dictionaryapi.com/api/v3/references/';
 
 const SHOW_DEFS = 3;    // definitions shown per part of speech before "More"
-const SHOW_CHIPS = 5;   // similar words shown before the expand chip
+const SHOW_REL = 14;    // looser (grey) related words shown before the expand chip
 
 const $ = (s) => document.querySelector(s);
 const q = $('#q'), result = $('#result');
@@ -162,7 +176,8 @@ function fmt(s) {
   return s;
 }
 
-// Collect every sense (with its first example) from an entry's def block
+// Collect every sense from an entry (works for both dictionary and thesaurus entries)
+const words = (lists) => [...new Set((lists || []).flat().map(x => String(x?.wd || '').replace(/\{[^}]*\}/g, '').trim()).filter(Boolean))];
 function senses(entry) {
   const out = [];
   const push = (d) => {
@@ -174,8 +189,13 @@ function senses(entry) {
     }
     const def = fmt(text);
     if (!def) return;
-    const vis = d.dt.find(x => x[0] === 'vis');
-    out.push({ def, ex: vis ? fmt(vis[1][0]?.t || '') : '' });
+    const ex = d.dt.filter(x => x[0] === 'vis').flatMap(x => x[1]).map(v => fmt(v.t || '')).filter(Boolean).slice(0, 2);
+    out.push({
+      def, ex,
+      label: (d.sls || []).join(', '),
+      syn: words(d.syn_list), rel: words(d.rel_list),
+      ant: words([...(d.ant_list || []), ...(d.near_list || [])])
+    });
   };
   const walk = ([type, data]) => {
     if (type === 'sense') push(data);
@@ -183,7 +203,7 @@ function senses(entry) {
     else if (type === 'pseq') data.forEach(walk);
   };
   (entry.def || []).forEach(d => (d.sseq || []).forEach(seq => seq.forEach(walk)));
-  if (!out.length) (entry.shortdef || []).forEach(s => out.push({ def: esc(s), ex: '' }));
+  if (!out.length) (entry.shortdef || []).forEach(s => out.push({ def: esc(s), ex: [], syn: [], rel: [], ant: [] }));
   return out;
 }
 
@@ -253,6 +273,8 @@ function pickEntries(list, word) {
   return hits.filter(e => baseId(e) === head);
 }
 
+const plain = (s) => String(s || '').replace(/\*/g, '').replace(/\{[^}]*\}/g, '').trim();
+
 function render(word, dictAll, thesAll) {
   const entries = pickEntries(dictAll, word);
   const thes = thesAll.length ? pickEntries(thesAll, baseId(entries[0])) : [];
@@ -266,12 +288,13 @@ function render(word, dictAll, thesAll) {
   const origin = etyEntry ? fmt(etyEntry.et.filter(x => x[0] === 'text').map(x => x[1]).join(' ')) : '';
   const firstUse = entries.find(e => e.date)?.date;
 
-  // Similar / opposite words grouped by part of speech, from the thesaurus
+  // Thesaurus senses grouped by part of speech
   const thesByPos = {};
   thes.forEach(t => {
-    const g = thesByPos[t.fl] ||= { syn: [], ant: [] };
-    g.syn.push(...(t.meta?.syns || []).flat());
-    g.ant.push(...(t.meta?.ants || []).flat());
+    let s = senses(t);
+    if (!s.some(x => x.syn.length || x.rel.length)) // fallback to the summary lists
+      s = [{ def: '', ex: [], syn: (t.meta?.syns || []).flat(), rel: [], ant: (t.meta?.ants || []).flat() }];
+    (thesByPos[t.fl] ||= []).push(...s);
   });
   const usedPos = new Set();
 
@@ -286,17 +309,32 @@ function render(word, dictAll, thesAll) {
   entries.forEach(entry => {
     const defs = senses(entry);
     if (!defs.length) return;
-    html += `<div class="pos">${esc(entry.fl || '')}</div><ol>`;
+    const fl = entry.fl || '';
+    const forms = (entry.ins || []).map(i => (i.il ? `<i>${esc(i.il)}</i> ` : '') + `<b>${esc(plain(i.if))}</b>`);
+    html += `<div class="posblock"><div class="pos">${esc(fl)}</div>
+      <div class="forms">${esc(fl)}: <b>${esc(plain(entry.hwi?.hw || baseId(entry)))}</b>${forms.length ? '; ' + forms.join('; ') : ''}</div><ol>`;
+
+    // Similar words for this part of speech (only once per POS)
+    const groups = (!usedPos.has(fl) && thesByPos[fl]) ? thesByPos[fl].filter(g => g.syn.length || g.rel.length || g.ant.length) : [];
+    usedPos.add(fl);
+    const single = groups.length === 1;
+
     defs.forEach((d, i) => {
-      html += `<li class="${i >= SHOW_DEFS ? 'extra hidden' : ''}">${d.def}${d.ex ? `<div class="ex">"${d.ex}"</div>` : ''}</li>`;
+      html += `<li class="${i >= SHOW_DEFS ? 'extra hidden' : ''}">${d.label ? `<span class="sl">${esc(d.label)}</span> ` : ''}${d.def}
+        ${d.ex.map(x => `<div class="ex">"${x}"</div>`).join('')}
+        ${single && i === 0 ? synBlock(groups[0], false) : ''}</li>`;
     });
     html += '</ol>';
     if (defs.length > SHOW_DEFS) html += `<button class="more" data-more>More definitions (${defs.length - SHOW_DEFS})</button>`;
-    const t = thesByPos[entry.fl];
-    if (t && !usedPos.has(entry.fl)) {
-      usedPos.add(entry.fl);
-      html += chipRow('Similar:', t.syn) + chipRow('Opposite:', t.ant, true);
+
+    if (groups.length > 1) {
+      html += `<div class="syngroups"><div class="sghead">Synonyms by meaning</div>` +
+        groups.map(g => synBlock(g, true)).join('') + `</div>`;
     }
+
+    const uros = (entry.uros || []).map(u => `<span class="xref" data-w="${esc(plain(u.ure))}">${esc(plain(u.ure))}</span> <i>${esc(u.fl || '')}</i>`);
+    if (uros.length) html += `<div class="related"><span class="rlab">Related forms:</span> ${uros.join(' · ')}</div>`;
+    html += `</div>`;
   });
 
   if (origin || firstUse) {
@@ -310,15 +348,24 @@ function render(word, dictAll, thesAll) {
   $('#speak').onclick = () => { if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); } };
 }
 
-function chipRow(label, words, ant) {
-  words = [...new Set((words || []).filter(Boolean))];
-  if (!words.length) return '';
-  const shown = words.slice(0, SHOW_CHIPS), rest = words.slice(SHOW_CHIPS);
-  return `<div class="chips ${ant ? 'ant' : ''}"><span class="lab">${label}</span>
-    ${shown.map(w => `<button class="chip" data-w="${esc(w)}">${esc(w)}</button>`).join('')}
-    ${rest.map(w => `<button class="chip extra-chip hidden" data-w="${esc(w)}">${esc(w)}</button>`).join('')}
-    ${rest.length ? `<button class="chip" data-expand aria-label="Show more">⌄</button>` : ''}</div>`;
+// One meaning's similar/opposite words: strong synonyms dark, looser related words grey
+function synBlock(g, showMeaning) {
+  const syn = [...new Set(g.syn)];
+  const rel = [...new Set(g.rel)].filter(w => !syn.includes(w));
+  let h = `<div class="synblock">`;
+  if (showMeaning && g.def) h += `<div class="sgdef">${g.def}${g.ex[0] ? ` <span class="ex">"${g.ex[0]}"</span>` : ''}</div>`;
+  if (syn.length || rel.length) {
+    const shownRel = rel.slice(0, SHOW_REL), restRel = rel.slice(SHOW_REL);
+    h += `<div class="chips"><span class="lab">Similar:</span>
+      ${syn.map(w => chip(w)).join('')}
+      ${shownRel.map(w => chip(w, 'rel')).join('')}
+      ${restRel.map(w => chip(w, 'rel extra-chip hidden')).join('')}
+      ${restRel.length ? `<button class="chip" data-expand aria-label="Show more">⌄</button>` : ''}</div>`;
+  }
+  if (g.ant.length) h += `<div class="chips ant"><span class="lab">Opposite:</span>${[...new Set(g.ant)].slice(0, 12).map(w => chip(w)).join('')}</div>`;
+  return h + `</div>`;
 }
+const chip = (w, cls = '') => `<button class="chip ${cls}" data-w="${esc(w)}">${esc(w)}</button>`;
 
 // ---- events ----
 $('#f').addEventListener('submit', e => { e.preventDefault(); lookup(q.value); });
