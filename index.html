@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Define</title>
+<style>
+  :root {
+    --bg: #ffffff; --card: #ffffff; --border: #dadce0; --text: #202124;
+    --muted: #70757a; --soft: #5f6368; --blue: #1a73e8; --chip-bg: #ffffff;
+    --chip-hover: #f1f3f4; --label: #188038; --ant: #c5221f; --shadow: 0 1px 6px rgba(32,33,36,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #202124; --card: #202124; --border: #3c4043; --text: #e8eaed;
+      --muted: #9aa0a6; --soft: #bdc1c6; --blue: #8ab4f8; --chip-bg: #202124;
+      --chip-hover: #303134; --label: #81c995; --ant: #f28b82; --shadow: 0 1px 6px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: Roboto, Arial, "Helvetica Neue", sans-serif; font-size: 15px; line-height: 1.5; }
+  main { max-width: 680px; margin: 0 auto; padding: 32px 20px 64px; }
+  form { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 24px;
+    padding: 6px 8px 6px 18px; background: var(--card); box-shadow: var(--shadow); }
+  input[type=search] { flex: 1; border: 0; outline: 0; background: transparent; color: var(--text);
+    font: inherit; font-size: 16px; padding: 8px 0; }
+  form button { border: 0; background: transparent; color: var(--blue); cursor: pointer;
+    width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+  form button:hover { background: var(--chip-hover); }
+  .hint { color: var(--muted); font-size: 13px; margin: 10px 4px 0; }
+  .hint kbd { border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: 12px; }
+
+  .hintrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .gear { border: 0; background: none; color: var(--muted); cursor: pointer; width: 34px; height: 34px;
+    border-radius: 50%; display: grid; place-items: center; margin-top: 8px; flex: none; }
+  .gear:hover { background: var(--chip-hover); color: var(--text); }
+  .settings { margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; background: var(--card); }
+  .settings form { display: block; border: 0; box-shadow: none; padding: 0; border-radius: 0; background: none; }
+  .settings h2 { font-size: 17px; font-weight: 500; margin: 0 0 6px; }
+  .settings .small { color: var(--soft); font-size: 14px; margin: 0 0 12px; }
+  .settings a { color: var(--blue); }
+  .settings label { display: block; font-size: 14px; margin-bottom: 10px; }
+  .settings .opt { color: var(--muted); }
+  .settings input { display: block; width: 100%; margin-top: 4px; padding: 8px 10px; font: inherit; font-size: 14px;
+    font-family: ui-monospace, Consolas, monospace; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; }
+  .settings input:focus { outline: 2px solid var(--blue); outline-offset: -1px; }
+  .settings .note { color: var(--ant); font-size: 14px; margin: 0 0 10px; }
+  .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .btn1, .btn2 { font: inherit; font-size: 14px; border-radius: 18px; padding: 6px 18px; cursor: pointer; }
+  .btn1 { background: var(--blue); color: var(--bg); border: 1px solid var(--blue); }
+  .btn2 { background: none; color: var(--blue); border: 1px solid var(--border); }
+  #result { margin-top: 24px; }
+  .card { border: 1px solid var(--border); border-radius: 8px; padding: 20px 22px; background: var(--card); }
+  .head { display: flex; align-items: center; gap: 14px; }
+  .speak { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--card); color: var(--blue); cursor: pointer; display: grid; place-items: center; }
+  .speak:hover { background: var(--chip-hover); }
+  .speak:disabled { color: var(--muted); cursor: default; opacity: .5; }
+  .word { font-size: 34px; line-height: 1.15; font-weight: 400; margin: 0; }
+  .phon { color: var(--muted); margin-top: 2px; }
+  .pos { font-style: italic; margin: 18px 0 6px; font-size: 15px; }
+  .pos + .pos-gap { display: none; }
+  ol { margin: 0; padding-left: 22px; }
+  li { margin: 0 0 12px; padding-left: 4px; }
+  .ex { color: var(--muted); margin-top: 2px; }
+  .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  .chips .lab { color: var(--label); font-size: 14px; margin-right: 4px; }
+  .chips.ant .lab { color: var(--ant); }
+  .chip { border: 1px solid var(--border); background: var(--chip-bg); color: var(--text);
+    border-radius: 16px; padding: 3px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .chip:hover { background: var(--chip-hover); }
+  .xref { color: var(--blue); cursor: pointer; }
+  .xref:hover { text-decoration: underline; }
+  .more { margin-top: 4px; background: none; border: 0; color: var(--blue); cursor: pointer;
+    font: inherit; font-size: 14px; padding: 4px 0; }
+  .hidden { display: none !important; }
+  .origin { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .origin h3 { font-size: 15px; font-weight: 400; color: var(--muted); margin: 0 0 4px; }
+  .first { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .msg { color: var(--soft); padding: 8px 4px; }
+  .msg a, .src a { color: var(--blue); }
+  .src { color: var(--muted); font-size: 12px; margin-top: 14px; }
+  .recent { margin-top: 28px; }
+  .recent h2 { font-size: 13px; font-weight: 500; color: var(--muted); margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: .04em; }
+  .spinner { width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin .8s linear infinite; margin: 20px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main>
+  <form id="f" autocomplete="off">
+    <input id="q" type="search" placeholder="Define a word" aria-label="Word to define" autofocus spellcheck="false">
+    <button type="submit" aria-label="Search">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    </button>
+  </form>
+  <div class="hintrow">
+    <p class="hint">Press <kbd>/</kbd> to jump to the search box. Click any similar word to look it up.</p>
+    <button id="gear" class="gear" aria-label="Settings" title="API keys">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.61.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.48 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </button>
+  </div>
+  <div id="settings" class="settings hidden">
+    <form id="setForm">
+      <h2>Your Merriam-Webster keys</h2>
+      <p class="small">This page uses Merriam-Webster's free dictionary service. Get two free keys at
+        <a href="https://dictionaryapi.com/register/index" target="_blank" rel="noopener">dictionaryapi.com</a>
+        (choose Collegiate Dictionary and Collegiate Thesaurus), then paste them here. They're saved only in this browser.</p>
+      <p id="setNote" class="note hidden"></p>
+      <label>Dictionary key <input id="dictKey" type="text" spellcheck="false" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+      <label>Thesaurus key <span class="opt">(optional, for similar words)</span> <input id="thesKey" type="text" spellcheck="false" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+      <div class="btns"><button type="button" id="setCancel" class="btn2">Cancel</button><button type="submit" class="btn1">Save</button></div>
+    </form>
+  </div>
+  <div id="result"></div>
+  <div id="recent" class="recent hidden"><h2>Recent</h2><div class="chips" id="recentChips"></div></div>
+</main>
+
+<script>
+// Merriam-Webster API keys are entered by each person in Settings and kept only in their own browser.
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch { return false; } }
+};
+let DICT_KEY = store.get('define.dictKey');
+let THES_KEY = store.get('define.thesKey');
+const API = 'https://www.dictionaryapi.com/api/v3/references/';
+
+const SHOW_DEFS = 3;    // definitions shown per part of speech before "More"
+const SHOW_CHIPS = 5;   // similar words shown before the expand chip
+
+const $ = (s) => document.querySelector(s);
+const q = $('#q'), result = $('#result');
+let audio = null;
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const baseId = (e) => String(e?.meta?.id || '').replace(/:\d+$/, '').toLowerCase();
+
+// Turn Merriam-Webster's {markup} into HTML
+function fmt(s) {
+  s = esc(s);
+  s = s.replace(/\{dx\}[\s\S]*?\{\/dx\}/g, '')
+       .replace(/\{dx_def\}[\s\S]*?\{\/dx_def\}/g, '')
+       .replace(/\{dx_ety\}[\s\S]*?\{\/dx_ety\}/g, '')
+       .replace(/\{ma\}[\s\S]*?\{\/ma\}/g, '')
+       .replace(/^\s*\{bc\}/, '').replace(/\{bc\}/g, '; ')
+       .replace(/\{ldquo\}/g, '“').replace(/\{rdquo\}/g, '”')
+       .replace(/\{(it|wi|qword|phrase|parahw)\}([\s\S]*?)\{\/\1\}/g, '<i>$2</i>')
+       .replace(/\{b\}([\s\S]*?)\{\/b\}/g, '<b>$1</b>')
+       .replace(/\{sc\}([\s\S]*?)\{\/sc\}/g, '<span style="font-variant:small-caps">$1</span>')
+       .replace(/\{sup\}([\s\S]*?)\{\/sup\}/g, '<sup>$1</sup>')
+       .replace(/\{inf\}([\s\S]*?)\{\/inf\}/g, '<sub>$1</sub>')
+       .replace(/\{gloss\}([\s\S]*?)\{\/gloss\}/g, '[$1]')
+       .replace(/\{(?:sx|a_link|d_link|i_link|et_link|mat|dxt)\|([^|}]*)[^}]*\}/g,
+                (m, w) => `<span class="xref" data-w="${w.replace(/:\d+$/, '')}">${w.replace(/:\d+$/, '')}</span>`)
+       .replace(/\{[^}]*\}/g, '')
+       .replace(/\s+([,;.])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  return s;
+}
+
+// Collect every sense (with its first example) from an entry's def block
+function senses(entry) {
+  const out = [];
+  const push = (d) => {
+    if (!d || !d.dt) return;
+    let text = d.dt.filter(x => x[0] === 'text').map(x => x[1]).join(' ');
+    if (!text.replace(/\{[^}]*\}/g, '').trim()) {
+      const uns = d.dt.find(x => x[0] === 'uns');
+      if (uns) text = uns[1].flat().filter(x => x[0] === 'text').map(x => x[1]).join(' ');
+    }
+    const def = fmt(text);
+    if (!def) return;
+    const vis = d.dt.find(x => x[0] === 'vis');
+    out.push({ def, ex: vis ? fmt(vis[1][0]?.t || '') : '' });
+  };
+  const walk = ([type, data]) => {
+    if (type === 'sense') push(data);
+    else if (type === 'bs') push(data.sense);
+    else if (type === 'pseq') data.forEach(walk);
+  };
+  (entry.def || []).forEach(d => (d.sseq || []).forEach(seq => seq.forEach(walk)));
+  if (!out.length) (entry.shortdef || []).forEach(s => out.push({ def: esc(s), ex: '' }));
+  return out;
+}
+
+function audioUrl(file) {
+  if (!file) return '';
+  const sub = /^bix/.test(file) ? 'bix' : /^gg/.test(file) ? 'gg' : /^[^a-z]/i.test(file) ? 'number' : file[0];
+  return `https://media.merriam-webster.com/audio/prons/en/us/mp3/${sub}/${file}.mp3`;
+}
+
+// ---- recent lookups (kept in this browser only) ----
+function getRecent() { try { return JSON.parse(localStorage.getItem('define.recent') || '[]'); } catch { return []; } }
+function addRecent(w) {
+  try { localStorage.setItem('define.recent', JSON.stringify([w, ...getRecent().filter(x => x !== w)].slice(0, 12))); } catch {}
+  renderRecent();
+}
+function renderRecent() {
+  const list = getRecent();
+  $('#recent').classList.toggle('hidden', !list.length);
+  $('#recentChips').innerHTML = list.map(w => `<button class="chip" data-w="${esc(w)}">${esc(w)}</button>`).join('');
+}
+
+async function getJSON(ref, word, key) {
+  const res = await fetch(`${API}${ref}/json/${encodeURIComponent(word)}?key=${key}`);
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { throw new Error(text.slice(0, 200) || 'HTTP ' + res.status); }
+}
+
+// ---- lookup ----
+async function lookup(raw) {
+  const word = raw.trim().toLowerCase();
+  if (!word) return;
+  q.value = word;
+  if (!DICT_KEY) { openSettings('Add your Merriam-Webster key to start looking up words.'); return; }
+  if (location.hash.slice(1) !== encodeURIComponent(word)) history.replaceState(null, '', '#' + encodeURIComponent(word));
+  document.title = word + ' — Define';
+  result.innerHTML = '<div class="spinner"></div>';
+
+  let dict, thes = [];
+  try {
+    [dict, thes] = await Promise.all([
+      getJSON('collegiate', word, DICT_KEY),
+      THES_KEY ? getJSON('thesaurus', word, THES_KEY).catch(() => []) : []
+    ]);
+  } catch (e) {
+    if (/key/i.test(e.message)) { result.innerHTML = ''; openSettings(`Merriam-Webster didn't accept the Dictionary key: ${esc(e.message)}`); return; }
+    result.innerHTML = `<p class="msg">Couldn't reach the dictionary. Check your internet connection and try again.</p>`;
+    return;
+  }
+
+  // Not found: M-W returns a list of suggested spellings (strings)
+  if (!Array.isArray(dict) || !dict.length || typeof dict[0] === 'string') {
+    const sugg = (dict || []).filter(s => typeof s === 'string').slice(0, 10);
+    result.innerHTML = `<p class="msg">No definition found for <b>${esc(word)}</b>.</p>` +
+      (sugg.length ? `<div class="chips"><span class="lab">Did you mean:</span>${sugg.map(s => `<button class="chip" data-w="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : '');
+    return;
+  }
+  render(word, dict, Array.isArray(thes) ? thes.filter(t => typeof t === 'object') : []);
+  addRecent(word);
+}
+
+function pickEntries(list, word) {
+  let hits = list.filter(e => baseId(e) === word);
+  if (!hits.length) hits = list.filter(e => (e.meta?.stems || []).map(s => s.toLowerCase()).includes(word));
+  if (!hits.length) hits = list.slice(0, 1);
+  // keep only entries for the same headword as the first match (e.g. "ran" → "run")
+  const head = baseId(hits[0]);
+  return hits.filter(e => baseId(e) === head);
+}
+
+function render(word, dictAll, thesAll) {
+  const entries = pickEntries(dictAll, word);
+  const thes = thesAll.length ? pickEntries(thesAll, baseId(entries[0])) : [];
+  const first = entries[0];
+
+  const headword = (first.hwi?.hw || first.meta.id).replace(/:\d+$/, '').replace(/\*/g, '·');
+  const pr = entries.flatMap(e => e.hwi?.prs || []);
+  const phon = pr.find(p => p.mw)?.mw || '';
+  const src = audioUrl(pr.find(p => p.sound?.audio)?.sound.audio);
+  const etyEntry = entries.find(e => e.et);
+  const origin = etyEntry ? fmt(etyEntry.et.filter(x => x[0] === 'text').map(x => x[1]).join(' ')) : '';
+  const firstUse = entries.find(e => e.date)?.date;
+
+  // Similar / opposite words grouped by part of speech, from the thesaurus
+  const thesByPos = {};
+  thes.forEach(t => {
+    const g = thesByPos[t.fl] ||= { syn: [], ant: [] };
+    g.syn.push(...(t.meta?.syns || []).flat());
+    g.ant.push(...(t.meta?.ants || []).flat());
+  });
+  const usedPos = new Set();
+
+  let html = `<div class="card">
+    <div class="head">
+      <button class="speak" id="speak" ${src ? '' : 'disabled'} aria-label="Listen" title="${src ? 'Listen' : 'No audio available'}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      </button>
+      <div><h1 class="word">${esc(headword)}</h1>${phon ? `<div class="phon">\\${esc(phon)}\\</div>` : ''}</div>
+    </div>`;
+
+  entries.forEach(entry => {
+    const defs = senses(entry);
+    if (!defs.length) return;
+    html += `<div class="pos">${esc(entry.fl || '')}</div><ol>`;
+    defs.forEach((d, i) => {
+      html += `<li class="${i >= SHOW_DEFS ? 'extra hidden' : ''}">${d.def}${d.ex ? `<div class="ex">"${d.ex}"</div>` : ''}</li>`;
+    });
+    html += '</ol>';
+    if (defs.length > SHOW_DEFS) html += `<button class="more" data-more>More definitions (${defs.length - SHOW_DEFS})</button>`;
+    const t = thesByPos[entry.fl];
+    if (t && !usedPos.has(entry.fl)) {
+      usedPos.add(entry.fl);
+      html += chipRow('Similar:', t.syn) + chipRow('Opposite:', t.ant, true);
+    }
+  });
+
+  if (origin || firstUse) {
+    html += `<div class="origin"><h3>Origin</h3>${origin}` +
+      (firstUse ? `<div class="first">First known use: ${fmt(firstUse)}</div>` : '') + `</div>`;
+  }
+  html += `<div class="src">Source: <a href="https://www.merriam-webster.com/dictionary/${encodeURIComponent(baseId(first))}" target="_blank" rel="noopener">Merriam-Webster</a></div></div>`;
+  result.innerHTML = html;
+
+  audio = src ? new Audio(src) : null;
+  $('#speak').onclick = () => { if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); } };
+}
+
+function chipRow(label, words, ant) {
+  words = [...new Set((words || []).filter(Boolean))];
+  if (!words.length) return '';
+  const shown = words.slice(0, SHOW_CHIPS), rest = words.slice(SHOW_CHIPS);
+  return `<div class="chips ${ant ? 'ant' : ''}"><span class="lab">${label}</span>
+    ${shown.map(w => `<button class="chip" data-w="${esc(w)}">${esc(w)}</button>`).join('')}
+    ${rest.map(w => `<button class="chip extra-chip hidden" data-w="${esc(w)}">${esc(w)}</button>`).join('')}
+    ${rest.length ? `<button class="chip" data-expand aria-label="Show more">⌄</button>` : ''}</div>`;
+}
+
+// ---- events ----
+$('#f').addEventListener('submit', e => { e.preventDefault(); lookup(q.value); });
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-w], [data-expand], [data-more]');
+  if (!t) return;
+  if (t.dataset.w) { lookup(t.dataset.w); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  else if (t.hasAttribute('data-expand')) {
+    t.parentElement.querySelectorAll('.extra-chip').forEach(c => c.classList.remove('hidden')); t.remove();
+  } else if (t.hasAttribute('data-more')) {
+    t.previousElementSibling.querySelectorAll('.extra').forEach(li => li.classList.remove('hidden')); t.remove();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus(); q.select(); }
+});
+window.addEventListener('hashchange', () => { const w = decodeURIComponent(location.hash.slice(1)); if (w && w !== q.value) lookup(w); });
+
+// ---- settings ----
+function openSettings(note) {
+  $('#dictKey').value = DICT_KEY; $('#thesKey').value = THES_KEY;
+  $('#setNote').innerHTML = note || '';
+  $('#setNote').classList.toggle('hidden', !note);
+  $('#settings').classList.remove('hidden');
+  $('#dictKey').focus();
+}
+$('#gear').addEventListener('click', () => $('#settings').classList.contains('hidden') ? openSettings() : $('#settings').classList.add('hidden'));
+$('#setCancel').addEventListener('click', () => $('#settings').classList.add('hidden'));
+$('#setForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const d = $('#dictKey').value.trim(), t = $('#thesKey').value.trim();
+  if (!d) { $('#setNote').textContent = 'The Dictionary key is required.'; $('#setNote').classList.remove('hidden'); return; }
+  DICT_KEY = d; THES_KEY = t;
+  const ok = store.set('define.dictKey', d) & store.set('define.thesKey', t);
+  $('#settings').classList.add('hidden');
+  if (!ok) result.innerHTML = '<p class="msg">Keys saved for this visit only. Your browser blocked saving them for next time.</p>';
+  if (q.value.trim()) lookup(q.value); else q.focus();
+});
+
+renderRecent();
+if (!DICT_KEY) openSettings();
+const start = decodeURIComponent(location.hash.slice(1));
+if (start) lookup(start);
+</script>
+</body>
+</html>
